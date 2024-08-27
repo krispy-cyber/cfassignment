@@ -1,6 +1,6 @@
 # Top-level configuration
 name = "raisetheflag"
-main = "src/index.js"
+main = "./index.js"
 compatibility_date = "2024-08-27"
 
 workers_dev = false
