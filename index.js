@@ -9,7 +9,7 @@ export default {
       const COUNTRY = path.split("/")[2];
 
       // Fetch the flag asset from the R2 bucket
-      const flag = await env.MY_R2_BUCKET.get(`${COUNTRY}.png`);
+      const flag = await env.flags.get(`${COUNTRY}.png`);
       
       if (flag) {
         // Serve the flag image with the appropriate content type
