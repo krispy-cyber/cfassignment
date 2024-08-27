@@ -4,8 +4,10 @@ main = "./index.js"
 compatibility_date = "2024-08-27"
 
 workers_dev = false
-route = { pattern = "tunnel.mycyberadvantage.com.au/secure/", zone_name = "mycyberadvantage.com.au" }
-route = { pattern = "tunnel.mycyberadvantage.com.au/secure/{COUNTRY}", zone_name = "mycyberadvantage.com.au" }
+routes = [ 
+  { pattern = "tunnel.mycyberadvantage.com.au/secure/", zone_name = "mycyberadvantage.com.au" }
+  { pattern = "tunnel.mycyberadvantage.com.au/secure/{COUNTRY}", zone_name = "mycyberadvantage.com.au" }
+]
 
 r2_buckets  = [
   { binding = "FLAGS", bucket_name = "country-flags"},
