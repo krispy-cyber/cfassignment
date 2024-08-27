@@ -7,5 +7,5 @@ workers_dev = false
 route = { pattern = "tunnel.mycyberadvantage.com.au/secure/{COUNTRY}", zone_name = "example.org" }
 
 r2_buckets  = [
-  { binding = "<FLAGS>", bucket_name = "<country-flags>"},
+  { binding = "FLAGS", bucket_name = "country-flags"},
 ]
