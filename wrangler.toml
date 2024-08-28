@@ -10,5 +10,5 @@ routes = [
 ]
 
 r2_buckets  = [
-  { binding = "FLAGS", bucket_name = "country-flags"},
+  { binding = "FLAGS", bucket_name = "flag-images"},
 ]
