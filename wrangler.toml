@@ -1,5 +1,5 @@
 # Top-level configuration
-name = "Raise the flag"
+name = "raisetheflag"
 main = "./index.js"
 compatibility_date = "2024-08-27"
 
