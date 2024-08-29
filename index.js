@@ -38,6 +38,22 @@ export default {
       }
     }
 
+    // Add the /documentation/assignment path to fetch another PDF file
+    if (path === '/documentation/assignment') {
+      // Fetch the second PDF from the R2 bucket
+      const assignmentDocument = await env.FLAGS.get('Technical_Architect_Assignment.pdf');
+
+      if (assignmentDocument) {
+        // Serve the second PDF file with the appropriate content type
+        return new Response(assignmentDocument.body, {
+          headers: { 'Content-Type': 'application/pdf' }
+        });
+      } else {
+        // Handle the case where the second PDF is not found
+        return new Response("Assignment document not found", { status: 404 });
+      }
+    }
+
     // Default route handling for other paths (e.g., the main authentication response)
     const headers = request.headers;
     const EMAIL = headers.get('cf-access-authenticated-user-email') || 'Not Available';
