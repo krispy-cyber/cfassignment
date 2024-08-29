@@ -22,6 +22,22 @@ export default {
       }
     }
 
+    // Add the /documentation path to fetch the PDF file
+    if (path === '/documentation') {
+      // Fetch the PDF from the R2 bucket
+      const document = await env.FLAGS.get('Cloudflare Assignment - Chris Bested.pdf');
+
+      if (document) {
+        // Serve the PDF file with the appropriate content type
+        return new Response(document.body, {
+          headers: { 'Content-Type': 'application/pdf' }
+        });
+      } else {
+        // Handle the case where the PDF is not found
+        return new Response("Documentation not found", { status: 404 });
+      }
+    }
+
     // Default route handling for other paths (e.g., the main authentication response)
     const headers = request.headers;
     const EMAIL = headers.get('cf-access-authenticated-user-email') || 'Not Available';
