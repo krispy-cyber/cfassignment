@@ -7,6 +7,7 @@ workers_dev = false
 routes = [ 
   { pattern = "tunnel.mycyberadvantage.com.au/secure", zone_name = "mycyberadvantage.com.au" },
   { pattern = "tunnel.mycyberadvantage.com.au/secure/*", zone_name = "mycyberadvantage.com.au" }
+  { pattern = "tunnel.mycyberadvantage.com.au/secure/documentation", zone_name = "mycyberadvantage.com.au" }
 ]
 
 r2_buckets  = [
