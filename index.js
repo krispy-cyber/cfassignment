@@ -1,72 +1,146 @@
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
-    const path = url.pathname;
 
-    // Check if the path matches the /secure/${COUNTRY} route
-    if (path.startsWith("/secure/")) {
-      // Extract the country code from the URL and convert it to lowercase
-      const COUNTRY = path.split("/")[2].toLowerCase();
-
-      // Fetch the flag asset from the R2 bucket named "flag-images"
-      const flag = await env.FLAGS.get(`${COUNTRY}.png`);
-
-      if (flag) {
-        // Serve the flag image with the appropriate content type
-        return new Response(flag.body, {
-          headers: { 'Content-Type': 'image/png' }
-        });
-      } else {
-        // Handle the case where the flag is not found
-        return new Response("Flag not found", { status: 404 });
+    if (url.pathname === '/') {
+      // Fetch the JSON file from R2 using the bucket binding
+      const object = await env.BUCKET.get('questions.json');
+      if (!object) {
+        return new Response('Error: Questions file not found in R2 bucket.', { status: 404 });
       }
+
+      const questionnaireData = await object.json();
+
+      return new Response(generateQuestionnaireHTML(questionnaireData), {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    } else if (url.pathname === '/summer-series-logo.jpeg') {
+      // Fetch the image file from R2
+      const imageObject = await env.BUCKET.get('summer-series-logo.jpeg');
+      if (!imageObject) {
+        console.log('Image not found in R2 bucket.');
+        return new Response('Error: Image file not found in R2 bucket.', { status: 404 });
+      }
+
+      // Serve the image file with correct MIME type
+      return new Response(imageObject.body, {
+        headers: { 'Content-Type': 'image/jpeg' },
+      });
+    } else {
+      console.log(`Path not found: ${url.pathname}`);
     }
 
-    // Add the /documentation path to fetch the PDF file
-    if (path === '/documentation') {
-      // Fetch the PDF from the R2 bucket
-      const document = await env.FLAGS.get('Cloudflare Assignment - Chris Bested.pdf');
-
-      if (document) {
-        // Serve the PDF file with the appropriate content type
-        return new Response(document.body, {
-          headers: { 'Content-Type': 'application/pdf' }
-        });
-      } else {
-        // Handle the case where the PDF is not found
-        return new Response("Documentation not found", { status: 404 });
-      }
-    }
-
-    // Add the /documentation/assignment path to fetch another PDF file
-    if (path === '/documentation/assignment') {
-      // Fetch the second PDF from the R2 bucket
-      const assignmentDocument = await env.FLAGS.get('Technical_Architect_Assignment.pdf');
-
-      if (assignmentDocument) {
-        // Serve the second PDF file with the appropriate content type
-        return new Response(assignmentDocument.body, {
-          headers: { 'Content-Type': 'application/pdf' }
-        });
-      } else {
-        // Handle the case where the second PDF is not found
-        return new Response("Assignment document not found", { status: 404 });
-      }
-    }
-
-    // Default route handling for other paths (e.g., the main authentication response)
-    const headers = request.headers;
-    const EMAIL = headers.get('cf-access-authenticated-user-email') || 'Not Available';
-    const COUNTRY = headers.get('cf-ipcountry') || 'Unknown';
-    const TIMESTAMP = new Date().toISOString();
-    const responseBody = `
-      ${EMAIL} authenticated at ${TIMESTAMP} from 
-      <a href="${url.origin}/secure/${COUNTRY.toLowerCase()}">
-        ${COUNTRY}
-      </a>
-    `;
-    return new Response(responseBody, {
-      headers: { 'Content-Type': 'text/html' }
-    });
+    return new Response('Not found', { status: 404 });
   },
 };
+
+// Function to generate the questionnaire HTML
+function generateQuestionnaireHTML(data) {
+  const heading = data.heading; // Get the heading from JSON
+  const questions = data.questions;
+  const options = data.options;
+
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${heading}</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #000000; color: #FFFFFF; }
+        .questionnaire { max-width: 600px; margin: 0 auto; background: #000000; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(255, 255, 255, 0.1); }
+        .header-strip { display: flex; align-items: center; background-color: #FFFF00; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+        .header-strip img { height: 60px; width: auto; margin-right: 10px; }
+        .heading { font-size: 24px; font-weight: bold; color: #000000; }
+        .question { margin-bottom: 20px; }
+        .options { margin-top: 10px; }
+        .options button { margin-right: 10px; padding: 10px 20px; background-color: #FFFF00; color: #000000; border: none; border-radius: 5px; cursor: pointer; }
+        .options a { text-decoration: none; }
+        .navigation { margin-top: 20px; }
+        .navigation button { background-color: #FFFF00; color: #000000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+      </style>
+      <script>
+        let currentQuestionId = 'Q1';
+        let historyStack = []; // Stack to keep track of navigation history
+
+        const questions = ${JSON.stringify(questions)};
+        const options = ${JSON.stringify(options)};
+
+        document.addEventListener('DOMContentLoaded', function () {
+          renderQuestion(currentQuestionId);
+        });
+
+        function renderQuestion(questionId) {
+          const questionData = questions.find(q => q.id === questionId);
+          const questionContainer = document.getElementById('question-container');
+
+          questionContainer.innerHTML = getQuestionHTML(questionData);
+          showNavigation();
+        }
+
+        function getQuestionHTML(questionData) {
+          return '<div class="question">' +
+            '<h3>' + questionData.question + '</h3>' +
+            '<div class="options">' +
+              questionData.options.map(option => 
+                '<button onclick="handleAnswer(\\'' + option.next + '\\')">' + option.answer + '</button>'
+              ).join('') +
+            '</div>' +
+          '</div>';
+        }
+
+        function handleAnswer(nextQuestionId) {
+          // Save the current question ID to history stack
+          historyStack.push(currentQuestionId);
+
+          if (options[nextQuestionId]) {
+            showOption(nextQuestionId);
+          } else {
+            currentQuestionId = nextQuestionId; // Update the current question ID
+            renderQuestion(nextQuestionId);
+          }
+        }
+
+        function showOption(optionId) {
+          const questionContainer = document.getElementById('question-container');
+          const link = options[optionId];
+
+          questionContainer.innerHTML = getOptionHTML(link);
+          showNavigation();
+        }
+
+        function getOptionHTML(link) {
+          return '<div class="question"><h3>Selected Option:</h3></div>' +
+            '<div class="options">' +
+              '<a href="' + link + '" target="_self"><button>' + (link.includes('http') ? 'Go to Option' : link) + '</button></a>' +
+            '</div>';
+        }
+
+        function showNavigation() {
+          const questionContainer = document.getElementById('question-container');
+          const navHTML = '<div class="navigation"><button onclick="goBack()">Back to Last Question</button></div>';
+          questionContainer.innerHTML += navHTML;
+        }
+
+        function goBack() {
+          if (historyStack.length > 0) {
+            const lastQuestionId = historyStack.pop(); // Get the last question ID from the stack
+            currentQuestionId = lastQuestionId; // Update the current question ID
+            renderQuestion(lastQuestionId);
+          }
+        }
+      </script>
+    </head>
+    <body>
+      <div class="questionnaire">
+        <div class="header-strip">
+          <img src="/summer-series-logo.jpeg" alt="Logo" /> <!-- Corrected image path -->
+          <div class="heading">${heading}</div>
+        </div>
+        <div id="question-container"></div>
+      </div>
+    </body>
+    </html>
+  `;
+}
